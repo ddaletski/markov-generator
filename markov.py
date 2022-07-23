@@ -1,6 +1,6 @@
 from functools import reduce
 from random import random, randint
-import sys
+import click
 
 class MarkovGenerator:
     def __init__(self, depth):
@@ -60,19 +60,24 @@ class MarkovGenerator:
 
         text = [current_string]
 
-        for i in range(size):
+        for _ in range(size):
             text.append(self.next_symbol(current_string))
             current_string = current_string[1:] + text[-1]
         return "".join(text)
 
+@click.command()
+@click.option("-d", "--scan-depth", default=3, type=click.IntRange(1, 10), help="scanner depth")
+@click.option("-l", "--length", type=int, required=True, help="result text length")
+@click.argument("input_files", type=click.Path(exists=True, dir_okay=False), required=True, nargs=-1)
+def cli(scan_depth, length, input_files):
+    gen = MarkovGenerator(scan_depth)
 
+    for path in input_files:
+        with open(path) as file:
+            gen.scan_frequencies(file.read())
+
+    generated_text = gen.generate(length)
+    print(generated_text)
 
 if __name__ == "__main__":
-    if len(sys.argv) > 3:
-        gen = MarkovGenerator(int(sys.argv[1]))
-
-        for filename in sys.argv[3:]:
-            with open(filename) as file:
-                gen.scan_frequencies(file.read())
-
-        print(gen.generate(int(sys.argv[2])))
+    cli()
